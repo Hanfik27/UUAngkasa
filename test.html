@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Draf UUD Mayday - Pidana Ringan</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    h1 { text-align: center; color: #333; }
+    .file-upload { margin-bottom: 20px; text-align: center; }
+    .file-upload input[type="file"] { padding: 10px; margin: 10px; }
+    .file-upload button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    .file-upload button:hover { background: #0056b3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background: #343a40; color: white; font-weight: bold; }
+    tr:nth-child(even) { background: #f8f9fa; }
+    tr:hover { background: #e9ecef; }
+    input[type="text"], select { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; }
+    .summary, .history { margin-top: 20px; background: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    button { padding: 8px 15px; margin: 5px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #218838; }
+    button.reset { background: #dc3545; }
+    button.reset:hover { background: #c82333; }
+    .checkbox-cell { text-align: center; width: 50px; }
+    .status { margin: 10px 0; padding: 10px; border-radius: 4px; }
+    .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <h1>Draf UUD Mayday - Pidana Ringan</h1>
+
+  <div class="file-upload">
+    <input type="file" id="csvFile" accept=".csv" />
+    <button onclick="loadCSVFromFile()">Upload CSV</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="filters" id="filtersContainer" style="display: none;">
+    <input type="text" id="search" placeholder="Cari pasal, deskripsi, denda, atau masa tahanan..." />
+    <select id="filterPasal"><option value="">Filter Pasal</option></select>
+    <select id="filterDenda"><option value="">Filter Denda</option></select>
+    <select id="filterTahanan"><option value="">Filter Masa Tahanan</option></select>
+    <button onclick="clearFilters()">Clear Filters</button>
+  </div>
+
+  <div id="tableContainer" style="display: none;">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th class="checkbox-cell">Pilih</th>
+          <th>Pasal</th>
+          <th>Deskripsi</th>
+          <th>Denda</th>
+          <th>Masa Tahanan</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="summary" id="summaryContainer" style="display: none;">
+    <h3>Rangkuman Pasal Dipilih</h3>
+    <input type="text" id="namaInput" placeholder="Masukkan Nama Anda" />
+    <ul id="selectedList"></ul>
+    <p><strong>Total Denda:</strong> Rp <span id="totalDenda">0</span></p>
+    <p><strong>Total Masa Tahanan:</strong> <span id="totalTahanan">0</span> bulan</p>
+    <button onclick="confirmSelection()">Konfirmasi Pilihan</button>
+    <button onclick="clearSelection()">Clear Pilihan</button>
+  </div>
+
+  <div class="history" id="historyContainer" style="display: none;">
+    <h3>Riwayat Penjumlahan</h3>
+    <ul id="historyList"></ul>
+    <button class="reset" onclick="resetHistory()">Reset Riwayat</button>
+  </div>
+
+  <script>
+    let data = [];
+    let history = [];
+    const tbody = document.querySelector("#dataTable tbody");
+    const searchInput = document.getElementById("search");
+    const filterPasal = document.getElementById("filterPasal");
+    const filterDenda = document.getElementById("filterDenda");
+    const filterTahanan = document.getElementById("filterTahanan");
+    const selectedList = document.getElementById("selectedList");
+    const totalDenda = document.getElementById("totalDenda");
+    const totalTahanan = document.getElementById("totalTahanan");
+    const historyList = document.getElementById("historyList");
+    const namaInput = document.getElementById("namaInput");
+    const statusDiv = document.getElementById("status");
+
+    let selected = [];
+
+    function showStatus(message, type = 'info') {
+      statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+      setTimeout(() => statusDiv.innerHTML = '', 5000);
+    }
+
+    function loadCSVFromFile() {
+      const fileInput = document.getElementById('csvFile');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        showStatus('Silakan pilih file CSV terlebih dahulu.', 'error');
+        return;
+      }
+
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        showStatus('File harus berformat CSV.', 'error');
+        return;
+      }
+
+      showStatus('Memproses file CSV...', 'info');
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+        complete: function(results) {
+          if (results.errors.length > 0) {
+            showStatus('Error parsing CSV: ' + results.errors[0].message, 'error');
+            return;
+          }
+
+          try {
+            data = results.data.map((row, index) => {
+              // Handle different possible column names
+              const pasal = row["PASAL"] || row["Pasal"] || row["pasal"] || "";
+              const deskripsi = row["DESKRIPSI"] || row["Deskripsi"] || row["deskripsi"] || "";
+              const denda = parseInt(row["DENDA"] || row["Denda"] || row["denda"] || 0);
+              const tahanan = parseInt(row["MASA TAHANAN"] || row["Masa Tahanan"] || row["masa tahanan"] || row["TAHANAN"] || row["Tahanan"] || row["tahanan"] || 0);
+
+              if (!pasal) {
+                throw new Error(`Baris ${index + 1}: Kolom PASAL tidak ditemukan atau kosong`);
+              }
+
+              return {
+                pasal: pasal.toString().trim(),
+                deskripsi: deskripsi.toString().trim(),
+                denda: isNaN(denda) ? 0 : denda,
+                tahanan: isNaN(tahanan) ? 0 : tahanan
+              };
+            }).filter(row => row.pasal); // Filter out rows with empty pasal
+
+            if (data.length === 0) {
+              throw new Error('Tidak ada data valid yang ditemukan dalam file CSV');
+            }
+
+            populateFilters();
+            renderTable();
+            showStatus(`Berhasil memuat ${data.length} data dari CSV`, 'success');
+            
+            // Show all containers
+            document.getElementById('filtersContainer').style.display = 'flex';
+            document.getElementById('tableContainer').style.display = 'block';
+            document.getElementById('summaryContainer').style.display = 'block';
+            document.getElementById('historyContainer').style.display = 'block';
+
+          } catch (error) {
+            showStatus('Error processing data: ' + error.message, 'error');
+          }
+        },
+        error: function(error) {
+          showStatus('Error reading file: ' + error.message, 'error');
+        }
+      });
+    }
+
+    function renderTable() {
+      tbody.innerHTML = "";
+      const q = searchInput.value.toLowerCase();
+      const pasalFilter = filterPasal.value;
+      const dendaFilter = filterDenda.value;
+      const tahananFilter = filterTahanan.value;
+
+      let filteredData = data.filter((row, i) => {
+        // Apply filters
+        if (pasalFilter && row.pasal !== pasalFilter) return false;
+        if (dendaFilter && row.denda.toString() !== dendaFilter) return false;
+        if (tahananFilter && row.tahanan.toString() !== tahananFilter) return false;
+        
+        // Apply search
+        if (q && !row.pasal.toLowerCase().includes(q) &&
+            !row.deskripsi.toLowerCase().includes(q) &&
+            !row.denda.toString().includes(q) &&
+            !row.tahanan.toString().includes(q)) {
+          return false;
+        }
+        
+        return true;
+      });
+
+      filteredData.forEach((row, i) => {
+        const originalIndex = data.indexOf(row);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="checkbox-cell"><input type="checkbox" data-index="${originalIndex}" ${selected.includes(originalIndex) ? "checked" : ""}></td>
+          <td><strong>${row.pasal}</strong></td>
+          <td>${row.deskripsi}</td>
+          <td>Rp ${row.denda.toLocaleString('id-ID')}</td>
+          <td>${row.tahanan} bulan</td>
+        `;
+        
+        const checkbox = tr.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', (e) => {
+          e.stopPropagation();
+          toggleSelect(originalIndex);
+        });
+        
+        tbody.appendChild(tr);
+      });
+
+      if (filteredData.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td colspan="5" style="text-align: center; color: #666;">Tidak ada data yang sesuai dengan filter</td>';
+        tbody.appendChild(tr);
+      }
+    }
+
+    function toggleSelect(index) {
+      if (selected.includes(index)) {
+        selected = selected.filter(i => i !== index);
+      } else {
+        selected.push(index);
+      }
+      updateSummary();
+      renderTable();
+    }
+
+    function updateSummary() {
+      selectedList.innerHTML = "";
+      let totalD = 0, totalT = 0;
+      
+      selected.forEach(i => {
+        const item = data[i];
+        totalD += item.denda;
+        totalT += item.tahanan;
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${item.pasal}</strong> - ${item.deskripsi} (Denda: Rp ${item.denda.toLocaleString('id-ID')}, Tahanan: ${item.tahanan} bulan)`;
+        selectedList.appendChild(li);
+      });
+      
+      totalDenda.textContent = totalD.toLocaleString('id-ID');
+      totalTahanan.textContent = totalT;
+    }
+
+    function confirmSelection() {
+      const nama = namaInput.value.trim();
+      if (!nama) {
+        showStatus('Silakan masukkan nama Anda.', 'error');
+        namaInput.focus();
+        return;
+      }
+      
+      if (selected.length === 0) {
+        showStatus('Silakan pilih setidaknya satu pasal.', 'error');
+        return;
+      }
+
+      const pasalList = selected.map(i => data[i].pasal).join(", ");
+      const totalD = selected.reduce((sum, i) => sum + data[i].denda, 0);
+      const totalT = selected.reduce((sum, i) => sum + data[i].tahanan, 0);
+      const waktu = new Date().toLocaleString('id-ID');
+      
+      const record = {
+        waktu: waktu,
+        nama: nama,
+        pasal: pasalList,
+        totalDenda: totalD,
+        totalTahanan: totalT
+      };
+      
+      history.push(record);
+      updateHistoryDisplay();
+      
+      // Reset selection
+      selected = [];
+      namaInput.value = '';
+      updateSummary();
+      renderTable();
+      
+      showStatus(`Konfirmasi berhasil untuk ${nama}`, 'success');
+    }
+
+    function updateHistoryDisplay() {
+      historyList.innerHTML = "";
+      history.forEach((record, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <strong>${record.waktu}</strong> - ${record.nama}<br>
+          Pasal: ${record.pasal}<br>
+          Total Denda: Rp ${record.totalDenda.toLocaleString('id-ID')}, 
+          Total Tahanan: ${record.totalTahanan} bulan
+          <button onclick="removeHistoryItem(${index})" style="margin-left: 10px; padding: 2px 6px; font-size: 12px;">Hapus</button>
+        `;
+        li.style.marginBottom = "10px";
+        li.style.padding = "10px";
+        li.style.backgroundColor = "#f8f9fa";
+        li.style.borderRadius = "4px";
+        historyList.appendChild(li);
+      });
+    }
+
+    function removeHistoryItem(index) {
+      history.splice(index, 1);
+      updateHistoryDisplay();
+      showStatus('Item riwayat dihapus', 'info');
+    }
+
+    function resetHistory() {
+      if (confirm('Apakah Anda yakin ingin menghapus semua riwayat?')) {
+        history = [];
+        historyList.innerHTML = "";
+        showStatus('Riwayat berhasil dihapus', 'info');
+      }
+    }
+
+    function clearSelection() {
+      selected = [];
+      updateSummary();
+      renderTable();
+      showStatus('Pilihan dibersihkan', 'info');
+    }
+
+    function clearFilters() {
+      searchInput.value = '';
+      filterPasal.value = '';
+      filterDenda.value = '';
+      filterTahanan.value = '';
+      renderTable();
+      showStatus('Filter dibersihkan', 'info');
+    }
+
+    function populateFilters() {
+      const pasalSet = new Set();
+      const dendaSet = new Set();
+      const tahananSet = new Set();
+      
+      data.forEach(row => {
+        pasalSet.add(row.pasal);
+        dendaSet.add(row.denda);
+        tahananSet.add(row.tahanan);
+      });
+
+      filterPasal.innerHTML = '<option value="">Semua Pasal</option>';
+      filterDenda.innerHTML = '<option value="">Semua Denda</option>';
+      filterTahanan.innerHTML = '<option value="">Semua Masa Tahanan</option>';
+
+      Array.from(pasalSet).sort().forEach(val => {
+        filterPasal.innerHTML += `<option value="${val}">${val}</option>`;
+      });
+      
+      Array.from(dendaSet).sort((a, b) => a - b).forEach(val => {
+        filterDenda.innerHTML += `<option value="${val}">Rp ${val.toLocaleString('id-ID')}</option>`;
+      });
+      
+      Array.from(tahananSet).sort((a, b) => a - b).forEach(val => {
+        filterTahanan.innerHTML += `<option value="${val}">${val} bulan</option>`;
+      });
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', renderTable);
+    filterPasal.addEventListener('change', renderTable);
+    filterDenda.addEventListener('change', renderTable);
+    filterTahanan.addEventListener('change', renderTable);
+
+    // Initial setup
+    showStatus('Silakan upload file CSV untuk memulai.', 'info');
+  </script>
+</body>
+</html>

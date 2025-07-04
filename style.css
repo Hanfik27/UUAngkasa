@@ -1,0 +1,92 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f4f4f4;
+}
+
+h1,
+h2 {
+  text-align: center;
+}
+
+table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: white;
+}
+
+th,
+td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+th {
+  background: #333;
+  color: white;
+  cursor: default;
+}
+
+input[type="text"],
+select {
+  padding: 5px;
+  margin: 5px 0;
+  width: 100%;
+  max-width: 300px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.parent {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.note {
+  margin-top: 20px;
+  background: white;
+  padding: 2px;
+  border: 1px solid #ccc;
+}
+
+.summary {
+  margin-top: 20px;
+  background: white;
+  padding: 10px;
+  border: 1px solid #ccc;
+  grid-column: span 2 / span 2;
+  grid-row: span 2 / span 2;
+}
+
+.history {
+  margin-top: 20px;
+  background: white;
+  padding: 10px;
+  border: 1px solid #ccc;
+  grid-column: span 2 / span 2;
+  grid-row: span 2 / span 2;
+  grid-column-start: 3;
+}
+
+button {
+  padding: 5px 10px;
+  margin-top: 10px;
+}
+
+footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.9em;
+  color: #666;
+}

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UUD Mayday Roleplay</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  </head>
+  <body>
+    <h1>UUD Mayday Roleplay</h1>
+      <div class="note">
+        <h2>Note</h2>
+        <p>INGAT BEDAKAN PASAL PELANGGARAN LANTAS DAN PELANGGARAN PIDANA KARENA ANGKA PASALNYA SAMA</p>
+        <p>PELANGGARAN LANTAS - Pasal 1.0 / 1.2 / 1.3 / 1.6 - Itu Masa Tahanan nya di tambah "SIM DISITA", teks tersebut tidak bisa dimasukkan</p>
+        <p>PELANGGARAN BERAT - Pasal 4.1 / 4.5 / 4.6 / 4.9 - Masa Tahanan "0 Bulan = HUKUMAN MATI" </p>
+      </div>
+      <br>
+
+    <div class="filters">
+      <input type="text" id="search" placeholder="Cari apapun..." />
+      <select id="filterDenda">
+        <option value="">Filter Denda</option>
+      </select>
+      <select id="filterTahanan">
+        <option value="">Filter Masa Tahanan</option>
+      </select>
+    </div>
+
+    <div>
+      <h2 class="ringan">Pelanggaran Lantas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Pasal</th>
+            <th>Deskripsi</th>
+            <th>Denda</th>
+            <th>Tahanan</th>
+          </tr>
+        </thead>
+        <tbody id="tablelantas"></tbody>
+      </table>
+    </div>
+
+    <div>
+      <h2 class="ringan">Pelanggaran Ringan</h2>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Pasal</th>
+            <th>Deskripsi</th>
+            <th>Denda</th>
+            <th>Tahanan</th>
+          </tr>
+        </thead>
+        <tbody id="tableRingan"></tbody>
+      </table>
+    </div>
+
+    <div>
+      <h2 class="sedang">Pelanggaran Sedang</h2>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Pasal</th>
+            <th>Deskripsi</th>
+            <th>Denda</th>
+            <th>Tahanan</th>
+          </tr>
+        </thead>
+        <tbody id="tableSedang"></tbody>
+      </table>
+    </div>
+
+    <div>
+      <h2>Pelanggaran Berat</h2>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Pasal</th>
+            <th>Deskripsi</th>
+            <th>Denda</th>
+            <th>Tahanan</th>
+          </tr>
+        </thead>
+        <tbody id="tableBerat"></tbody>
+      </table>
+    </div>
+
+    <div class="parent">
+      <div class="summary">
+        <h3>Rangkuman Pasal Dipilih</h3>
+        <input type="text" id="namaInput" placeholder="Masukkan Nama Anda" /><br />
+        <ul id="selectedList"></ul>
+        <p><strong>Total Denda :</strong> <span id="totalDenda">0</span></p>
+        <p><strong>Total Masa Tahanan :</strong> <span id="totalTahanan">0 bulan</span></p>
+        <button onclick="confirmSelection()">Konfirmasi</button>
+      </div>
+      <div class="history">
+        <h3>History</h3>
+        <ul id="historyList"></ul>
+        <button onclick="resetHistory()">Reset Riwayat</button>
+      </div>
+    </div>
+    
+    <footer>
+      &copy; 2025 UUD Angkasa Roleplay. All rights reserved.
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
